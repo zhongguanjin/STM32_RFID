@@ -366,7 +366,7 @@ void Rfid_Task_Process()
                         }
                         else
                         {
-                            //printf("[%s]write err!",__FUNCTION__);
+                            printf("[%s]write err!",__FUNCTION__);
                             UartRx.cmdOrSta = 1; //Ê§°Ü
                             UartRx.frameLen = UartRx.frameLen-1;
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
