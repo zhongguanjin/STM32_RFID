@@ -2,8 +2,8 @@
 
 #include "rfid.h"
 
-void rf_reInitRx(u8 mode);
-int16 rf_sendCmd(u32 cmdHead, const u8 * info);
+void rf_reInitRx(uint8 mode);
+int16 rf_sendCmd(uint32 cmdHead, const uint8 * info);
 uint8 rf_init(void);
 uint8 rf_wait( void );
 void Rfid_Task_Process(void);
@@ -16,10 +16,10 @@ uint8 RFID_STATE;
 
 uint8 Wallet_init_flg;  //钱包初始化标志
 
-const u8 C1E_info[]={0x60,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};	// for key1
-const u8 C2N_info[]={0x03,0x03,0x26,0x45,0x60,0x01,0x08};	// def. key1 for blk1
-const u8 C2M_info[]={0x00,0x26};
-const u8 C2O_info[] ={0x00};
+const uint8 C1E_info[]={0x60,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};	// for key1
+const uint8 C2N_info[]={0x03,0x03,0x26,0x45,0x60,0x01,0x08};	// def. key1 for blk1
+const uint8 C2M_info[]={0x00,0x26};
+const uint8  C2O_info[] ={0x00};
 /*****************************************************************************
  函 数 名  : rf_bccCalc
  功能描述  : 校验码函数
@@ -46,7 +46,7 @@ uint8 rf_bccCalc(uint8 * buf,uint8 len)
 	return ~bcc;
 }
 
-void rf_reInitRx(u8 mode)
+void rf_reInitRx(uint8 mode)
 {
 	rfMux.rIdx = 0;
 	rfMux.frameOK = 0;
@@ -56,7 +56,7 @@ void rf_reInitRx(u8 mode)
 
 uint8 rf_wait( void )
 {
-    u32 rfRxTicks = sys_ticks() + 2000;
+    uint32 rfRxTicks = sys_ticks() + 2000;
 	while(1)
 	{
 		Delay_ms(5);
@@ -90,12 +90,12 @@ uint8 rf_wait( void )
     修改内容   : 新生成函数
 
 *****************************************************************************/
-int16 rf_sendCmd(u32 cmdHead, const u8 * info)
+int16 rf_sendCmd(uint32 cmdHead, const uint8 * info)
 {
 	rfPkt_t rfSend;
 	int16 len;
 	rfSend.cmdHead = cmdHead;
-	len = (u32)(rfSend.infoLen);
+	len = (uint32)(rfSend.infoLen);
 	if((len != 0) && (info != NULL))
 	{
 		memcpy(rfSend.info,info,len);
@@ -103,7 +103,7 @@ int16 rf_sendCmd(u32 cmdHead, const u8 * info)
 	//帧长必须不小于6 字节，最大不能超过70 字节，且帧长必须等于信息长度加6；
 	rfSend.frameLen = rfSend.infoLen + 6;
 	//校验和，从FrameLen 开始到Info 的最后一字节异或取反
-	rfSend.info[len++] = rf_bccCalc((u8 *)&rfSend,(rfSend.infoLen+4));
+	rfSend.info[len++] = rf_bccCalc((uint8 *)&rfSend,(rfSend.infoLen+4));
 	rfSend.info[len++] = 0x03;
 	len += 4;
 	rf_reInitRx(0);  //主动交互模式
@@ -296,11 +296,11 @@ void Rfid_Task_Process()
                     memcpy(info.uid,rfMux.devInfo.uid.uch,4);
                     info.keyid = 1;
                     info.blkid = UartRx.info[0];
-                    if(OK == rf_sendCmd(RF_HEAD_C2E,(u8 *)&info)) //密钥验证
+                    if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
                         //info_w.blkid = UartRx.info[0];
                        // memcpy(info_w.dat,&UartRx.info[1],16);
-                        if(OK == rf_sendCmd(RF_HEAD_C2H,(u8 *)&UartRx.info))
+                        if(OK == rf_sendCmd(RF_HEAD_C2H,(uint8 *)&UartRx.info))
                         {
                             printf("write OK!");
                             UartRx.cmdOrSta = 0; //成功
@@ -348,10 +348,10 @@ void Rfid_Task_Process()
                     memcpy(info.uid,rfMux.devInfo.uid.uch,4);
                     info.keyid = 1;
                     info.blkid = UartRx.info[0];
-                    if(OK == rf_sendCmd(RF_HEAD_C2E,(u8 *)&info)) //密钥验证
+                    if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
                         info_w.blkid = UartRx.info[0];
-                        if(OK == rf_sendCmd(RF_HEAD_C2G,(u8 *)&info_w.blkid))
+                        if(OK == rf_sendCmd(RF_HEAD_C2G,(uint8 *)&info_w.blkid))
                         {
                             printf("read OK!");
                             memcpy(&(UartRx.info),rfMux.rPkt.info,16);
@@ -366,7 +366,7 @@ void Rfid_Task_Process()
                         }
                         else
                         {
-                            printf("[%s]write err!",__FUNCTION__);
+                            //printf("[%s]write err!",__FUNCTION__);
                             UartRx.cmdOrSta = 1; //失败
                             UartRx.frameLen = UartRx.frameLen-1;
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
