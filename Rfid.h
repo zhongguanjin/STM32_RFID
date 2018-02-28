@@ -4,6 +4,9 @@
 
 #include "config.h"
 
+
+
+
 #define RFID_BUF_MAX	32
 typedef union
 {
@@ -151,6 +154,6 @@ extern void rf_check(void);
 extern void Rfid_Task_Process(void);
 
 extern void Rfid_Receive_Process(void);
-extern void Uart_Receive_Process(void);
+
 
 #endif

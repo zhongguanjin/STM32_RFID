@@ -16,6 +16,8 @@ uint8 RFID_STATE;
 
 uint8 Wallet_init_flg;  //Ç®°ü³õÊ¼»¯±êÖ¾
 
+
+
 const uint8 C1E_info[]={0x60,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};	// for key1
 const uint8 C2N_info[]={0x03,0x03,0x26,0x45,0x60,0x01,0x08};	// def. key1 for blk1
 const uint8 C2M_info[]={0x00,0x26};
@@ -211,7 +213,7 @@ void rf_check(void)
     }
 }
 
-void Rfid_Task_Process()
+void Rfid_Task_Process(void)
 {
     switch(RFID_STATE)
     {
@@ -247,7 +249,6 @@ void Rfid_Task_Process()
                 if(rfMux.rPkt.infoLen == 0x19)
                 {
                     memcpy(&(rfMux.devInfo),rfMux.rxBuf+9,20);
-                    //Uart3_Send_Data(rfMux.devInfo.uid.uch, 4);
                     printf("uid: %X\r\n",rfMux.devInfo.uid.u);
                     rfMux.status = 1;
                     BELL(ON);
@@ -270,7 +271,6 @@ void Rfid_Task_Process()
                      UartRx.frameLen += 4;
                      UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                      UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                      memset(&(UartRx.rxBuf),0,32);
                 }
                 else
@@ -279,7 +279,6 @@ void Rfid_Task_Process()
                      UartRx.cmdOrSta = 1; //Ê§°Ü
                      UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                      UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                      memset(&(UartRx.rxBuf),0,32);
 
                 }
@@ -307,18 +306,16 @@ void Rfid_Task_Process()
                             UartRx.frameLen = UartRx.frameLen-17;
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                             UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                             memset(&(UartRx.rxBuf),0,32);
 
                         }
                         else
-            {
+                        {
                             printf("write err!");
                             UartRx.cmdOrSta = 1; //Ê§°Ü
                             UartRx.frameLen = UartRx.frameLen-17;
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                             UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                             memset(&(UartRx.rxBuf),0,32);
 
                         }
@@ -332,7 +329,6 @@ void Rfid_Task_Process()
                      UartRx.frameLen = UartRx.frameLen-17;
                      UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                      UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                      memset(&(UartRx.rxBuf),0,32);
                 }
                 RFID_STATE = STATE_RFID_TIME;
@@ -360,18 +356,15 @@ void Rfid_Task_Process()
 
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                             UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                             memset(&(UartRx.rxBuf),0,32);
 
                         }
                         else
                         {
-                            printf("[%s]write err!",__FUNCTION__);
                             UartRx.cmdOrSta = 1; //Ê§°Ü
                             UartRx.frameLen = UartRx.frameLen-1;
                             UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                             UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                             memset(&(UartRx.rxBuf),0,32);
 
                         }
@@ -385,16 +378,15 @@ void Rfid_Task_Process()
                      UartRx.frameLen = UartRx.frameLen-1;
                      UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
                      UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     Uart3_Send_Data(UartRx.rxBuf, UartRx.frameLen);
                      memset(&(UartRx.rxBuf),0,32);
                 }
                 RFID_STATE = STATE_RFID_TIME;
-
                 break;
             }
     }
 }
 
+#if 0
 void Rx_Task_Process(void)
 {
     switch(UartRx.cmdType)
@@ -500,7 +492,7 @@ void Uart_Receive_Process(void)
         }
 	}
 }
-
+#endif
 void Rfid_Receive_Process(void)
 {
     if(USART_GetFlagStatus(UART4,USART_IT_RXNE)!= RESET)
