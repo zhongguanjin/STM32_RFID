@@ -5,7 +5,7 @@
 
 #define Debug printf
 
-void COM1_4_Init( void);
+void COM3_4_Init( void);
 
 
 

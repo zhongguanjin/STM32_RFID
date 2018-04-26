@@ -24,7 +24,7 @@ void Uart4_Send_Data(unsigned char *buf,unsigned char num)
 	}
 }
 
-void COM1_4_Init( void)
+void COM3_4_Init( void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
@@ -117,9 +117,9 @@ _sys_exit(int x)
 
 int fputc(int ch, FILE *f)
 {
-	USART_SendData(USART1, (unsigned char) ch);
+	USART_SendData(USART3, (unsigned char) ch);
 
-	while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET)
+	while (USART_GetFlagStatus(USART3, USART_FLAG_TXE) == RESET)
 	{}
 
 	return ch;
