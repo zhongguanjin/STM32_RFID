@@ -1,12 +1,14 @@
 #include "config.h"
-
+#include "com.h"
 #include "rfid.h"
+#include "dbg.h"
 
 void rf_reInitRx(uint8 mode);
 int16 rf_sendCmd(uint32 cmdHead, const uint8 * info);
 uint8 rf_init(void);
 uint8 rf_wait( void );
-void Rfid_Task_Process(void);
+void com3_tx_rsp(uint8 sta,uint8 len);
+
 
 rfMux_t rfMux;
 Uartrx_t UartRx;
@@ -69,7 +71,7 @@ uint8 rf_wait( void )
         }
         if(tick_timeout(rfRxTicks))
         {
-            printf("rfMux.frame_err\r\n");
+            dbg("rfMux.frame_err\r\n");
            return ERR;
         }
 
@@ -119,13 +121,13 @@ int16 rf_sendCmd(uint32 cmdHead, const uint8 * info)
         }
         else
         {
-        	printf("rsp status: %x\r\n",rfMux.rxBuf[2]);
+        	//dbg("rsp status: %x\r\n",rfMux.rxBuf[2]);
         	return ERR;
         }
     }
     else
     {
-        //printf("overtime\r\n");
+        dbg("overtime\r\n");
         return ERR;
     }
 
@@ -157,7 +159,7 @@ uint8 rf_init(void)
 		Delay_ms(200);//20ms
 		if(rfMux.rxBuf[0] == 0x06)
 		{
-		    printf("rfMux.rxBuf[0]: %d\r\n",rfMux.rxBuf[0]);
+		    dbg("rfMux.rxBuf[0]: %d\r\n",rfMux.rxBuf[0]);
 			break;
 		}
 		Delay_ms(1000);
@@ -167,21 +169,21 @@ uint8 rf_init(void)
 	{
 		if(rf_sendCmd(RF_HEAD_C1A,NULL) == OK)
 		{
-		     //printf("RF_HEAD_C1A ok r\n");
+		     //dbg("RF_HEAD_C1A ok r\n");
 			if(rf_sendCmd(RF_HEAD_C1E1,C1E_info) == OK)
 			{
-			    //printf("RF_HEAD_C1E1 ok\r\n");
+			    //dbg("RF_HEAD_C1E1 ok\r\n");
 				return OK;
 			}
 			else
 			{
-			     printf("RF_HEAD_C1E1 err\r\n");
+			     dbg("RF_HEAD_C1E1 err\r\n");
 			     return ERR;
 			}
 		}
 		else
 		{
-		     printf("RF_HEAD_C1A err\r\n");
+		     dbg("RF_HEAD_C1A err\r\n");
 		     return ERR;
 		}
 	}
@@ -199,21 +201,23 @@ void rf_check(void)
         //该命令用于卡片的自动检测，执行该命令成功后，在UART 模式下，模块将主动发送
         //读取到卡片的数据
         {
-            //printf("RF_HEAD_C2N ok\r\n");
+            //dbg("RF_HEAD_C2N ok\r\n");
             rf_reInitRx(1);
         }
         else
         {   /* 检测RF模块错误 */
-           //printf("RF_HEAD_C2N err\r\n");
+           //dbg("RF_HEAD_C2N err\r\n");
         }
     }
     else
     {
-        printf("rf_init err\r\n");
+        dbg("rf_init err\r\n");
     }
 }
 
-void Rfid_Task_Process(void)
+
+
+void Rfid_Task_Process()
 {
     switch(RFID_STATE)
     {
@@ -234,12 +238,14 @@ void Rfid_Task_Process(void)
                 else
                 {
                     rfMux.status = 0;
+                    dbg("card leave");
                     memset(&rfMux.devInfo,0,sizeof(rfMux.devInfo));
                     // 卡移走，再次进入自动模式
                     if(OK == rf_sendCmd(RF_HEAD_C2N,C2N_info))
                     {
                         rf_reInitRx(1);
                         RFID_STATE = STATE_RFID_IDLE;
+                        dbg("STATE IDLE");
                     }
                 }
                 break;
@@ -249,7 +255,7 @@ void Rfid_Task_Process(void)
                 if(rfMux.rPkt.infoLen == 0x19)
                 {
                     memcpy(&(rfMux.devInfo),rfMux.rxBuf+9,20);
-                    printf("uid: %X\r\n",rfMux.devInfo.uid.u);
+                    dbg("uid: %X",rfMux.devInfo.uid.u);
                     rfMux.status = 1;
                     BELL(ON);
                     Delay_ms(100);
@@ -267,20 +273,13 @@ void Rfid_Task_Process(void)
                 if(OK == rf_sendCmd(RF_HEAD_C2M,C2M_info))
                 {
                      memcpy(&(UartRx.info),rfMux.devInfo.uid.uch,4);
-                     UartRx.cmdOrSta = 0; //成功
-                     UartRx.frameLen += 4;
-                     UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                     UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     memset(&(UartRx.rxBuf),0,32);
+                     dbg("uid: %X",rfMux.devInfo.uid.u);
+                     com3_tx_rsp(0,UartRx.frameLen+4);
                 }
                 else
                 {
-                     printf("card leave!");//卡离开
-                     UartRx.cmdOrSta = 1; //失败
-                     UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                     UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     memset(&(UartRx.rxBuf),0,32);
-
+                    dbg("read uid err!");//
+                    com3_tx_rsp(1,UartRx.frameLen);
                 }
                 RFID_STATE = STATE_RFID_TIME;
                 break;
@@ -297,39 +296,25 @@ void Rfid_Task_Process(void)
                     info.blkid = UartRx.info[0];
                     if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
-                        //info_w.blkid = UartRx.info[0];
-                       // memcpy(info_w.dat,&UartRx.info[1],16);
                         if(OK == rf_sendCmd(RF_HEAD_C2H,(uint8 *)&UartRx.info))
                         {
-                            printf("write OK!");
-                            UartRx.cmdOrSta = 0; //成功
-                            UartRx.frameLen = UartRx.frameLen-17;
-                            UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                            UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            memset(&(UartRx.rxBuf),0,32);
-
+                            dbg("write OK!");
+                            com3_tx_rsp(0,UartRx.frameLen-17);
                         }
                         else
                         {
-                            printf("write err!");
-                            UartRx.cmdOrSta = 1; //失败
-                            UartRx.frameLen = UartRx.frameLen-17;
-                            UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                            UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            memset(&(UartRx.rxBuf),0,32);
-
+                            dbg("write err!");
+                            com3_tx_rsp(1,UartRx.frameLen-17);
                         }
-
+                    }
+                    else
+                    {
+                       dbg("password err in write");
                     }
                 }
                 else
                 {
-                     printf("card leave!");//卡离开
-                     UartRx.cmdOrSta = 1; //失败
-                     UartRx.frameLen = UartRx.frameLen-17;
-                     UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                     UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     memset(&(UartRx.rxBuf),0,32);
+                    com3_tx_rsp(1,UartRx.frameLen-17);
                 }
                 RFID_STATE = STATE_RFID_TIME;
                 break;
@@ -340,45 +325,41 @@ void Rfid_Task_Process(void)
                 rfC2E_t info;
                 if(OK == rf_sendCmd(RF_HEAD_C2M,C2M_info))
                 {
-                    info.mode = 0x60;
-                    memcpy(info.uid,rfMux.devInfo.uid.uch,4);
-                    info.keyid = 1;
+                    info.mode = 0x60;                           //0x60——密钥A
+                    memcpy(info.uid,rfMux.devInfo.uid.uch,4);   //卡序列号（4 字节）
+                    info.keyid = 1;                             //密钥区号（1 字节）： 取值范围0～7
                     info.blkid = UartRx.info[0];
+                    /*卡块号（1 字节）：
+                        S50（0～63）
+                        S70（0～255）
+                        PLUS CPU 2K（0～127）
+                        PLUS CPU 4K（0～255）
+                    */
                     if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
                         info_w.blkid = UartRx.info[0];
                         if(OK == rf_sendCmd(RF_HEAD_C2G,(uint8 *)&info_w.blkid))
                         {
-                            printf("read OK!");
                             memcpy(&(UartRx.info),rfMux.rPkt.info,16);
-                            UartRx.cmdOrSta = 0; //成功
-                            UartRx.frameLen = UartRx.frameLen+15;
-
-                            UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                            UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            memset(&(UartRx.rxBuf),0,32);
-
+                            dbg("info:");
+                            dbg_hex(rfMux.rPkt.info,16);
+                            com3_tx_rsp(0,UartRx.frameLen+15);
                         }
                         else
                         {
-                            UartRx.cmdOrSta = 1; //失败
-                            UartRx.frameLen = UartRx.frameLen-1;
-                            UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                            UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                            memset(&(UartRx.rxBuf),0,32);
-
+                            dbg("read err!");
+                            com3_tx_rsp(1,UartRx.frameLen-1);
                         }
 
+                    }
+                    else
+                    {
+                        dbg("password err in read");
                     }
                 }
                 else
                 {
-                     printf("card leave!");//卡离开
-                     UartRx.cmdOrSta = 1; //失败
-                     UartRx.frameLen = UartRx.frameLen-1;
-                     UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-                     UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-                     memset(&(UartRx.rxBuf),0,32);
+                    com3_tx_rsp(1,UartRx.frameLen-1);
                 }
                 RFID_STATE = STATE_RFID_TIME;
                 break;
@@ -386,7 +367,6 @@ void Rfid_Task_Process(void)
     }
 }
 
-#if 0
 void Rx_Task_Process(void)
 {
     switch(UartRx.cmdType)
@@ -468,31 +448,68 @@ void Rx_Task_Process(void)
 
 }
 
-void Uart_Receive_Process(void)
+/*****************************************************************************
+ 函 数 名  : com3_tx_rsp
+ 功能描述  : com3应答函数
+ 输入参数  : uint8 sta  0-ok，1-err
+             uint8 len
+ 输出参数  : 无
+ 返 回 值  :
+ 调用函数  :
+ 被调函数  :
+
+ 修改历史      :
+  1.日    期   : 2018年7月8日
+    作    者   : zgj
+    修改内容   : 新生成函数
+
+*****************************************************************************/
+void com3_tx_rsp(uint8 sta,uint8 len)
 {
+    UartRx.cmdOrSta = sta; //成功
+    UartRx.frameLen = len;
+    UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
+    UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
+    com_send(COM3,UartRx.rxBuf,UartRx.frameLen); //中断发送
+}
+
+void com3_rxDeal(void)
+{
+	char ch;
 	static uint8 index = 0;
-	if(USART_GetITStatus(USART3, USART_IT_RXNE) != RESET)
+	if(com_rxLeft(COM3) != 0)
 	{
-        USART_ClearFlag(USART3, USART_FLAG_RXNE | USART_FLAG_ORE);
-        rxbuf[index++]= USART_ReceiveData(USART3);
-        if((rxbuf[index-1] == 0x03)&&(index == rxbuf[0]))
-        {
-            index -=2;// 指向bcc
-            if(rf_bccCalc(rxbuf, index) == rxbuf[index]) //bcc ok?
-            {
-                memcpy(&(UartRx.rxBuf),rxbuf,index);
-                index = 0;
-                Rx_Task_Process();
-            }
-            else
-            {
-                memset(&rxbuf,0,32);
-                index = 0;
-            }
-        }
+		while(1)
+		{
+			if(OK == com_getch(COM3,&ch))
+			{
+                rxbuf[index++]= ch;
+                if((rxbuf[index-1] == 0x03)&&(index == rxbuf[0]))
+                {
+                    index -=2;// 指向bcc
+                    if(rf_bccCalc(rxbuf, index) == rxbuf[index]) //bcc ok?
+                    {
+                        memcpy(&(UartRx.rxBuf),rxbuf,index);
+                        index = 0;
+                        Rx_Task_Process();
+                    }
+                    else
+                    {
+                        memset(&rxbuf,0,32);
+                        index = 0;
+                    }
+                }
+
+			}
+			else
+			{
+				break;
+			}
+		}
 	}
 }
-#endif
+
+
 void Rfid_Receive_Process(void)
 {
     if(USART_GetFlagStatus(UART4,USART_IT_RXNE)!= RESET)

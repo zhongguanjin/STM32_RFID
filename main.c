@@ -1,8 +1,7 @@
 #include "config.h"
 #include "rfid.h"
 #include "console.h"
-
-
+#include "com.h"
 void GPIO_Config(void);
 void NVIC_Configuration(void);
 
@@ -86,15 +85,19 @@ int main(void)
     SysTick_Init();
     /* TIM2 定时配置 */
     TIM2_Configuration();
-	COM3_4_Init();  //初始化UART1,UART4
+	//COM3_4_Init();  //初始化UART1,UART4
+	com_init(COM3, 9600);
+	com_init(COM1, 115200);
+	com_init(COM4, 9600);
     NVIC_Configuration(); //初始化相关中断
     /* TIM2 重新开时钟，开始计时 */
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , ENABLE);
     GPIO_Config();
 	rf_check();  //RFID检测初始化。
-	dbg_Init();
+	//dbg_Init();
 	while(1)
 	{
+	    com3_rxDeal();
         console_process();
         Rfid_Task_Process();
     }

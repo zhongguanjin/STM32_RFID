@@ -1,4 +1,7 @@
 #include "console.h"
+#include "dbg.h"
+#include "SysTick.h"
+#include "com.h"
 
 int console_main(char * buf, int len);
 void console_mainMenu(void);
@@ -18,7 +21,7 @@ typedef struct _UART_BUF_TAG
 	unsigned char	buf[CONSOLE_RX_BUF_LEN];
 } uart_buf_t;
 
- uart_buf_t uart3rx;
+ uart_buf_t uart1rx;
 
 /*****************************************************************************
  函 数 名  : console_mainMenu
@@ -63,8 +66,8 @@ int console_main(char * buf, int len)
 {
 	if(memcmp(buf,"reboot",6) == 0)
 	{
-        printf("reboot\r\n");
-        Delay_ms(600);
+		dbg("reboot");
+		Delay_ms(1000);
 		NVIC_SystemReset();
 	}
    	switch(buf[0])
@@ -167,12 +170,12 @@ void uart_bufInit(uart_buf_t * pBuf)
     修改内容   : 新生成函数
 
 *****************************************************************************/
-int uart2_getch(char * p)
+int uart1_getch(char * p)
 {
-    if (uart3rx.in != uart3rx.out)
+    if (uart1rx.in != uart1rx.out)
     {
-        *p = uart3rx.buf[uart3rx.out & CONSOLE_RX_BUF_MASK];
-        uart3rx.out++;
+        *p = uart1rx.buf[uart1rx.out & CONSOLE_RX_BUF_MASK];
+        uart1rx.out++;
         return 0;
     }
     else
@@ -223,12 +226,57 @@ uint8 val_getPara(int16 *cp,char *string)
     return j;
 }
 
+
+ void com1_rxDeal(void)
+{
+    static char buf[256];
+    static int len=0;
+    char ch;
+	if(com_rxLeft(COM1) != 0)
+	{
+		while(1)
+		{
+			if(OK == com_getch(COM1,&ch))
+			{
+                buf[len++] = ch;
+                if(ch < 0x20)
+                {
+                    if(len != 0)
+                    {   // 包含0D
+                        buf[len] = 0;
+                        if(console_cb == NULL)
+                        {
+                            console_cb = console_main;
+                        }
+                        if(console_cb(buf,len) != 0)
+                        {
+                            console_cb = NULL;
+                            console_mainMenu();
+                        }
+                    }
+                    len = 0;
+                }
+                else
+                {
+                    //printf("%c\r\n",ch);
+                }
+
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+}
+
+#if 0
 void console_process(void)
 {
     static char buf[256];
     static int len=0;
     char ch;
-    if(0 == uart2_getch(&ch))
+    if(0 == uart1_getch(&ch))
     {
         buf[len++] = ch;
         if(ch < 0x20)
@@ -250,25 +298,28 @@ void console_process(void)
         }
         else
         {
-            printf("%c\r\n",ch);
+            //printf("%c\r\n",ch);
         }
     }
 }
 
+
 void dbg_Init(void)
 {
-    uart_bufInit(&uart3rx);
+    uart_bufInit(&uart1rx);
 }
 
-void Uart3_Receive_Process(void)
+
+void Uart1_Receive_Process(void)
 {
-	if(USART_GetITStatus(USART3, USART_IT_RXNE) != RESET)
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
 	{
-        USART_ClearFlag(USART3, USART_FLAG_RXNE | USART_FLAG_ORE);
-        uart3rx.buf[uart3rx.in++&CONSOLE_RX_BUF_MASK]= USART_ReceiveData(USART3);
+        USART_ClearFlag(USART1, USART_FLAG_RXNE | USART_FLAG_ORE);
+        uart1rx.buf[uart1rx.in++&CONSOLE_RX_BUF_MASK]= USART_ReceiveData(USART1);
 	}
 }
 
+#endif
 
 
 
