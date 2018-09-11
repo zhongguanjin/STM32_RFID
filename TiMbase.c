@@ -16,6 +16,7 @@
   */
 
 #include "TiMbase.h"
+#include "Task_Main.h"
 
 
 /*
@@ -50,15 +51,15 @@ void TIM2_Configuration(void)
     TIM_ITConfig(TIM2,TIM_IT_Update,ENABLE);
 
     TIM_Cmd(TIM2, ENABLE);
-
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , DISABLE);		/*先关闭等待使用*/
+       /* TIM2 重新开时钟，开始计时 */
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , ENABLE);
 }
 
 
- unsigned long led_time;
+unsigned long led_time;
 
- u32 tick_time1;
- uint32 SystemTicksCount(void)
+u32 tick_time1;
+uint32 SystemTicksCount(void)
  {
     led_time++;
 	if(led_time%150 == 60)
@@ -77,6 +78,16 @@ void TIM2_Configuration(void)
  }
 
 
+void TIM2_IRQHandler(void)
+{
+	if (TIM_GetITStatus(TIM2 , TIM_IT_Update) != RESET )
+	{
+	    SystemTicksCount();
+	    TaskRemarks();
+		TIM_ClearITPendingBit(TIM2 , TIM_FLAG_Update);
+	}
+
+}
 
 
 

@@ -2,11 +2,13 @@
 #include "rfid.h"
 #include "console.h"
 #include "com.h"
+#include "bsp_i2c.h"
+#include "dbg.h"
+#include "Syn6658.h"
+#include "Task_Main.h"
+
 void GPIO_Config(void);
 void NVIC_Configuration(void);
-
-
-
 
 void GPIO_Config(void)
 {
@@ -45,6 +47,7 @@ void NVIC_Configuration(void)
   NVIC_InitTypeDef NVIC_InitStructure2;	//定义数据结构体
   NVIC_InitTypeDef NVIC_InitStructure3;
   NVIC_InitTypeDef NVIC_InitStructure4;
+  NVIC_InitTypeDef NVIC_InitStructure5;
   NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);//将中断矢量放到Flash的0地址
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);//设置优先级配置的模式，详情请阅读原材料中的文章
 
@@ -74,8 +77,16 @@ void NVIC_Configuration(void)
   NVIC_InitStructure4.NVIC_IRQChannelSubPriority = 0;
   NVIC_InitStructure4.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure4);	//将结构体丢到配置函数，即写入到对应寄存器中
+    //使能串口3中断，并设置优先级
+  NVIC_InitStructure5.NVIC_IRQChannel = USART2_IRQn;
+  NVIC_InitStructure5.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure5.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure5.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure5);	//将结构体丢到配置函数，即写入到对应寄存器中
+
 
 }
+
 
 
 int main(void)
@@ -83,23 +94,22 @@ int main(void)
     SystemInit();					//初始化系统
     /* 配置SysTick 为1us中断一次 */
     SysTick_Init();
-    /* TIM2 定时配置 */
-    TIM2_Configuration();
-	//COM3_4_Init();  //初始化UART1,UART4
 	com_init(COM3, 9600);
 	com_init(COM1, 115200);
 	com_init(COM4, 9600);
+	//com_init(COM2, 57600);
     NVIC_Configuration(); //初始化相关中断
-    /* TIM2 重新开时钟，开始计时 */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , ENABLE);
+    /* TIM2 定时配置 */
+    TIM2_Configuration();
     GPIO_Config();
-	rf_check();  //RFID检测初始化。
-	//dbg_Init();
+    I2C_EE_Config();
+    //Syn6558_Init();
+	rf_init_check();  //RFID检测初始化。
 	while(1)
 	{
 	    com3_rxDeal();
         console_process();
-        Rfid_Task_Process();
+        TaskProcess();
     }
 }
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/

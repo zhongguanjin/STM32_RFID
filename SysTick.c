@@ -71,9 +71,18 @@ void TimingDelay_Decrement(void)
 	{
 		TimingDelay--;
 	}
+	else
+	{
+			// ¹Ø±ÕµÎ´ð¶¨Ê±Æ÷
+		SysTick->CTRL &= ~ SysTick_CTRL_ENABLE_Msk;
+	}
 }
 
 
+void SysTick_Handler(void)
+{
+    TimingDelay_Decrement();
+}
 
 
 

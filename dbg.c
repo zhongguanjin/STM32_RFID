@@ -75,9 +75,9 @@ void printhex (const unsigned int x)
 
 }
 
- void dbg_hex(uint8 *buf,uint8 len)
+ void dbg_hex(uint8 *buf,uint16 len)
  {
-     uint8 i =0;
+     uint16 i =0;
      for( i=0;i<len;i++)
      {
          printhex(*buf++);

@@ -7,17 +7,12 @@
 
 
 
+
 #define RFID_BUF_MAX	32
-typedef union
-{
-	void *	ptr;
-	uint32	u;
-	int32	i;
-	uint16	ush[2];
-	int16	sh[2];
-	uint8	uch[4];
-	int8	ch[4];
-} UN32;
+
+#define  USER_TEST     1
+
+
 
 typedef struct
 {
@@ -39,13 +34,7 @@ typedef struct
     u8	Wallet_val[4];
 }rfC2P_t;
 
-typedef union
-{
-	uint16	ush;
-	int16	sh;
-	uint8	uch[2];
-	int8	ch[2];
-} UN16;
+
 
 typedef struct
 {
@@ -149,11 +138,30 @@ enum
 
 
 
-extern void rf_check(void);
+extern void rf_init_check(void);
 
 extern void Rfid_Task_Process(void);
 
 extern void Rfid_Receive_Process(void);
 
+extern uint32 get_rf_uid(void);
+extern void read_rf_dat(uint8 blank);
+
+#if USER_TEST
+extern int rfUsr_isRfok(u8 *buf);
+extern int rfUsr_isRfFull(void);
+extern int rfUsr_append(u8 *buf);
+extern void rfUsr_showRfSerial(void);
+extern void rfUsr_setDefault(void);
+extern void rfUsr_init(void);
+#else
+extern uint8 check_rfid_user(uint32 uid);
+extern uint8 add_rfid_user(void);
+extern uint8 del_rfid_user(void);
+extern uint8 clear_rfid_user(void);
+extern uint8 query_rfid_user(uint32* buf);
+extern void rfid_user_init(void);
+
+#endif
 
 #endif

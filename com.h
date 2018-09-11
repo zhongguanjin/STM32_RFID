@@ -29,7 +29,7 @@ void com_cycleReset(comCycle_t * pBuf);
 u32 com_txLeft(COM_DEF COMx);
 u32 com_rxLeft(COM_DEF COMx);
 int com_getch(COM_DEF COMx, char * p);
-void com_send(COM_DEF COMx, char * buf, u32 len);
+void com_send(COM_DEF COMx, uint8 * buf, u32 len);
 
 void com2_rxDeal(void);
 void com3_rxDeal(void);

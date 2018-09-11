@@ -5,10 +5,10 @@
 #include "config.h"
 
 
-#define dbg(fmt,args...)	printf("[%s]-[%d]:" fmt "\r\n",__func__,__LINE__,## args)
+#define dbg(fmt,args...)	printf("[%s]:" fmt "\r\n",__func__,## args)
 
 
-extern void dbg_hex(uint8 *buf,uint8 len);
+extern void dbg_hex(uint8 *buf,uint16 len);
 
 
 

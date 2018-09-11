@@ -23,7 +23,7 @@ void com_init(COM_DEF COMx,u32 baud)
     {
         case COM1:
             {
-                RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO, ENABLE);
+                RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1, ENABLE);
                 /* Configure USART Tx1 as alternate function push-pull */
                 GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
                 GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
@@ -46,6 +46,29 @@ void com_init(COM_DEF COMx,u32 baud)
             }
         case COM2:
             {
+                RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD ,ENABLE);
+                RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2,ENABLE);
+                RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO,ENABLE);
+                GPIO_PinRemapConfig(GPIO_Remap_USART2, ENABLE);
+                /* Configure USART Tx2 as alternate function push-pull */
+                GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+                GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+                GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+                GPIO_Init(GPIOD, &GPIO_InitStructure);
+                /* Configure USART Rx2 as floating */
+                GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
+                //GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+                GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+                GPIO_Init(GPIOD, &GPIO_InitStructure);
+                USART_InitStructure.USART_BaudRate = baud;  //波特率
+                USART_InitStructure.USART_WordLength = USART_WordLength_8b;     //数据位
+                USART_InitStructure.USART_StopBits = USART_StopBits_1;      //停止位
+                USART_InitStructure.USART_Parity = USART_Parity_No;     //奇偶校验
+                USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None; //数据流控制
+                USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;     //模式
+                USART_Init(USART2, &USART_InitStructure); // 配置串口
+                USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
+                USART_Cmd(USART2, ENABLE);
                 break;
             }
         case COM3:
@@ -135,7 +158,7 @@ int com_getch(COM_DEF COMx, char * p)
 	}
 }
 
-void com_send(COM_DEF COMx, char * buf, u32 len)
+void com_send(COM_DEF COMx, uint8 * buf, u32 len)
 {
 	comCycle_t * pcbuf = &(comBuf[COMx].tx);
 
