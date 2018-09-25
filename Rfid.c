@@ -7,6 +7,7 @@
 #include<string.h>
 #include <stdio.h>
 
+#include "Syn6658.h"
 
 const uint8 C1E_info[]={0x60,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};	// for key1
 const uint8 C2N_info[]={0x03,0x03,0x26,0x45,0x60,0x01,0x08};	// def. key1 for blk1
@@ -642,7 +643,7 @@ void Rfid_Task_Process()//200ms
                     if(check_rfid_user(rfMux.devInfo.uid.u)==OK)
                  #endif
                     {
-                        //dbg("valid card");
+    					 char str[]={"有效卡"};
                         BELL(ON);
                         Delay_ms(100);
                         BELL(OFF);
@@ -650,10 +651,13 @@ void Rfid_Task_Process()//200ms
                         BELL(ON);
                         Delay_ms(100);
                         BELL(OFF);
+                        Syn6658_Play(str);
+
                     }
                     else
                     {
-                        dbg("invalid card");
+                        char str[]={"无效卡请重刷"};
+                        Syn6658_Play(str);
                     }
                 }
                 RFID_STATE = STATE_RFID_TIME;

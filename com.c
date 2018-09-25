@@ -2,6 +2,7 @@
 #include "console.h"
 #include "rfid.h"
 #include "SysTick.h"
+#include "Syn6658.h"
 
 tComBuf_t comBuf[4];
 USART_TypeDef * Tab_uartbase[5] = {USART1,USART2,USART3,UART4,UART5};
@@ -300,7 +301,8 @@ void USART2_IRQHandler(void)
 	if((USART2->SR & USART_SR_RXNE) != 0) //0：数据没有收到；1：收到数据，可以读出。
 	{
 		/* Receive data & clear flag */
-		comBuf[COM2].rx.buf[comBuf[COM2].rx.in++] = (u8)(USART2->DR);
+		get_rspcmd((u8)(USART2->DR));
+		//comBuf[COM2].rx.buf[comBuf[COM2].rx.in++] = (u8)(USART2->DR);
 	}
 	if((USART2->SR & USART_SR_TXE) != 0)//0：数据还没有被转移到移位寄存器；1：数据已经被转移到移位寄存器。
 	{

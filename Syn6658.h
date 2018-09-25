@@ -7,7 +7,9 @@
 
 
 
-extern void Syn6558_Init(void);
-
+extern void Syn6658_Play(char *buf);
+extern void Syn6658_Cmd(uint8 cmd);
+extern void syn6658_check(void);
+extern uint8 get_rspcmd(uint8 dat);
 #endif
 

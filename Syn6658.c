@@ -4,7 +4,7 @@
 #include "com.h"
 #define SYN_BUF_MAX  128
 
-char code_text[] = {"欢迎使用RFID读写器"};
+char code_text[] = {"欢迎使用读写器"};
 uint8 length;
 
 uint8 rot_val;//回转数据
@@ -15,8 +15,14 @@ uint8 rot_val;//回转数据
 #define Play_St_val  0x4E //芯片播音状态回传
 #define Idle_St_val  0x4F //芯片空闲状态回传
 
+#define stopcmd         0x02    //停止合成请求
+#define pausecmd        0x03    //暂停合成请求
+#define querycmd        0x21   //状态查询
+#define standbycmd      0x22   //待机请求
+#define awakencmd       0xFF   //唤醒请求
+#define recovercmd      0x04   //恢复合成请求
 
-
+uint8 Syn6658_Init(void);
 
 
 typedef  union
@@ -38,7 +44,7 @@ SynMux_t  SynMux;
 
 
 /*****************************************************************************
- 函 数 名  : Syn6558_Play
+ 函 数 名  : Syn6658_Play
  功能描述  : 语音合成播放命令
  输入参数  : char *buf --待合成的文本
  输出参数  : 无
@@ -52,7 +58,7 @@ SynMux_t  SynMux;
     修改内容   : 新生成函数
 
 *****************************************************************************/
-void Syn6558_Play(char *buf)
+void Syn6658_Play(char *buf)
 {
 	    uint8 i=0;
       SynMux.cmdType = 0x01;
@@ -67,9 +73,15 @@ void Syn6558_Play(char *buf)
 }
 
 /*****************************************************************************
- 函 数 名  : Syn6558_Stop
- 功能描述  : 停止合成命令
- 输入参数  : void
+ 函 数 名  : Syn6658_Cmd
+ 功能描述  : 命令请求
+ 输入参数  : uint8 cmd
+             stopcmd         0x02    //停止合成请求
+             pausecmd        0x03    //暂停合成请求
+             querycmd        0x21   //状态查询
+             standbycmd      0x22   //待机请求
+             awakencmd       0xFF   //唤醒请求
+             recovercmd      0x04   //恢复合成请求
  输出参数  : 无
  返 回 值  :
  调用函数  :
@@ -81,130 +93,49 @@ void Syn6558_Play(char *buf)
     修改内容   : 新生成函数
 
 *****************************************************************************/
-void Syn6558_Stop(void)
+void Syn6658_Cmd(uint8 cmd)
 {
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0x02;
+     SynMux.lenL =0x01;
+     SynMux.cmdType = cmd;
     com_send(COM2,SynMux.Buf, SynMux.lenL+3); //中断发送
 }
-/*****************************************************************************
- 函 数 名  : Syn6558_Pause
- 功能描述  : 暂停合成命令
- 输入参数  : void
- 输出参数  : 无
- 返 回 值  :
- 调用函数  :
- 被调函数  :
 
- 修改历史      :
-  1.日    期   : 2018年9月10日
-    作    者   : zgj
-    修改内容   : 新生成函数
 
-*****************************************************************************/
-void Syn6558_Pause(void)
+
+uint8 Syn6658_Init(void)
 {
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0x03;
-    com_send(COM2,SynMux.Buf,  SynMux.lenL+3); //中断发送
-}
-
-/*****************************************************************************
- 函 数 名  : Syn6558_Query
- 功能描述  : 芯片状态查询命令
- 输入参数  : 无
- 输出参数  : 无
- 返 回 值  :
- 调用函数  :
- 被调函数  :
-
- 修改历史      :
-  1.日    期   : 2018年9月10日
-    作    者   : zgj
-    修改内容   : 新生成函数
-
-*****************************************************************************/
-void Syn6558_Query()
-{
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0x21;
-    com_send(COM2,SynMux.Buf,  SynMux.lenL+3); //中断发送
-}
-
-/*****************************************************************************
- 函 数 名  : Syn6558_Standby
- 功能描述  : 芯片进入Standby模式命令
- 输入参数  : 无
- 输出参数  : 无
- 返 回 值  :
- 调用函数  :
- 被调函数  :
-
- 修改历史      :
-  1.日    期   : 2018年9月10日
-    作    者   : zgj
-    修改内容   : 新生成函数
-
-*****************************************************************************/
-void Syn6558_Standby(void)
-{
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0x22;
-    com_send(COM2,SynMux.Buf,  SynMux.lenL+3); //中断发送
-}
-/*****************************************************************************
- 函 数 名  : Syn6558_Awaken
- 功能描述  : 芯片唤醒命令
- 输入参数  : void
- 输出参数  : 无
- 返 回 值  :
- 调用函数  :
- 被调函数  :
-
- 修改历史      :
-  1.日    期   : 2018年9月10日
-    作    者   : zgj
-    修改内容   : 新生成函数
-
-*****************************************************************************/
-void Syn6558_Awaken(void)
-{
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0xFF;
-    com_send(COM2,SynMux.Buf,  SynMux.lenL+3); //中断发送
-}
-
-/*****************************************************************************
- 函 数 名  : Syn6558_Recover
- 功能描述  : 恢复合成命令
- 输入参数  : void
- 输出参数  : 无
- 返 回 值  :
- 调用函数  :
- 被调函数  :
-
- 修改历史      :
-  1.日    期   : 2018年9月10日
-    作    者   : zgj
-    修改内容   : 新生成函数
-
-*****************************************************************************/
-void Syn6558_Recover(void)
-{
-      SynMux.lenL =0x01;
-    SynMux.cmdType = 0x04;
-    com_send(COM2,SynMux.Buf,  SynMux.lenL+3); //中断发送
-}
-
-void Syn6558_Init(void)
-{
+  uint8 times = 5;
   SynMux.frameHead = 0xfd;
-
-  dbg("rot_val:%d",rot_val);
-  Syn6558_Awaken();
-
+  Syn6658_Cmd(awakencmd);
+  Delay_ms(1000);
+  while(times-- != 0)
+  {
+    if(rot_val==Frame_Ok_val)
+    {
+        return OK;
+    }
+  }
+  return ERR;
 }
 
+void syn6658_check(void)
+{
+    if(Syn6658_Init() == OK)
+    {
+        Syn6658_Play(code_text);
+        dbg("syn6658 init ok");
+    }
+    else
+    {
+        dbg("syn6658 init err");
+    }
+}
+
+uint8 get_rspcmd(uint8 dat)
+{
+    rot_val=dat;
+    return rot_val;
+}
 void com2_rxDeal(void)
 {
 	char ch;
@@ -215,7 +146,7 @@ void com2_rxDeal(void)
 			if(OK == com_getch(COM2,&ch))
 			{
                 rot_val=ch;
-                dbg("rot_val:%d",rot_val);
+                dbg("rot_val:%x",rot_val);
 			}
 			else
 			{
