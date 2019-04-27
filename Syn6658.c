@@ -1,7 +1,7 @@
 #include "Syn6658.h"
 #include "string.h"
 #include  "dbg.h"
-#include "com.h"
+
 #define SYN_BUF_MAX  128
 
 char code_text[] = {"»¶Ó­Ê¹ÓÃ¶ÁÐ´Æ÷"};
@@ -117,6 +117,7 @@ uint8 Syn6658_Init(void)
   }
   return ERR;
 }
+
 
 void syn6658_check(void)
 {

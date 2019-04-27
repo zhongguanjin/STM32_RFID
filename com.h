@@ -37,6 +37,7 @@ void com4_rxDeal(void);
 void com1_rxDeal(void);
 void com_init(COM_DEF COMx,u32 baud);
 
+extern void rfid_rxDeal(uint8 dat);
 
 #endif
 

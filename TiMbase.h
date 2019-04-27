@@ -5,7 +5,8 @@
 #include "stm32f10x_rcc.h"
 #include "config.h"
 
-extern unsigned long SystemTicksCount(void);
+extern u32 SystemTicksCount(void);
+
 
 
 void TIM2_Configuration(void);

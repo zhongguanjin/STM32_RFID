@@ -59,7 +59,7 @@ void TIM2_Configuration(void)
 unsigned long led_time;
 
 u32 tick_time1;
-uint32 SystemTicksCount(void)
+u32 SystemTicksCount(void)
  {
     led_time++;
 	if(led_time%150 == 60)

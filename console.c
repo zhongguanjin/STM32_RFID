@@ -6,7 +6,7 @@
 
 #include "bsp_i2c.h"
 
-
+#include "ml_fpm.h"
 
 
 
@@ -61,6 +61,8 @@ void console_mainMenu(void)
     printf("d:del rfid user\r\n");
     printf("e:query rfid user\r\n");
     printf("f:eeprom test\r\n");
+    printf("g:ml sign\r\n");
+    printf("h:ml clear\r\n");
 
 }
 /*****************************************************************************
@@ -183,6 +185,16 @@ int console_main(char * buf, int len)
 		{
 		    eeprom_Menu();
 			break;
+		}
+		case 'g':
+		{
+		    ml_st_set(ML_ST_SIGN);
+		    break;
+		}
+		case 'h':
+		{
+		    ml_st_set(ML_ST_CLEAR);
+		    break;
 		}
 		default:
 		{

@@ -4,13 +4,15 @@
 #include "config.h"
 #include "com.h"
 
+#define console_com  COM1
+#define console_rxDeal()  com1_rxDeal()
 
 typedef int (*consoleCallback)(char * buf, int len);
 extern consoleCallback console_cb;
 
 
 
-#define console_process()  com1_rxDeal()
+
 extern int uart1_getch(char * p);
 
 

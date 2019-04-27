@@ -1,5 +1,4 @@
 #include "config.h"
-#include "com.h"
 #include "rfid.h"
 #include "dbg.h"
 #include "bsp_i2c.h"
@@ -8,6 +7,9 @@
 #include <stdio.h>
 
 #include "Syn6658.h"
+#include "ccu.h"
+
+#include "SoftTimer.h"
 
 const uint8 C1E_info[]={0x60,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};	// for key1
 const uint8 C2N_info[]={0x03,0x03,0x26,0x45,0x60,0x01,0x08};	// def. key1 for blk1
@@ -16,8 +18,10 @@ const uint8  C2O_info[] ={0x00};
 
 uint32 overticks;
 rfMux_t rfMux;
-uint8 rxbuf[32];
-Uartrx_t UartRx;
+
+
+//ccubuf_t ccubuf;
+
 
 uint8 RFID_STATE;
 
@@ -26,9 +30,9 @@ void rf_reInitRx(uint8 mode);
 int16 rf_sendCmd(uint32 cmdHead, const uint8 * info);
 uint8 rf_init(void);
 uint8 rf_wait( void );
-void com3_tx_rsp(uint8 sta,uint8 len);
 void Rf_SetOverTicks(u32 time);
 void rf_over_check(void);
+
 
 
 #if USER_TEST
@@ -276,9 +280,6 @@ void rfid_user_init(void)
 
 
 
-
-
-
 /*****************************************************************************
  函 数 名  : rf_bccCalc
  功能描述  : 校验码函数
@@ -366,7 +367,7 @@ int16 rf_sendCmd(uint32 cmdHead, const uint8 * info)
 	rfSend.info[len++] = 0x03;
 	len += 4;
 	rf_reInitRx(0);  //主动交互模式
-	Uart4_Send_Data((uint8 *)&rfSend,len); //发送命令帧数据
+	com_send(rfid_com,(uint8 *)&rfSend,len); //发送命令帧数据
 	//for recv
     if(rf_wait() == OK)
     {
@@ -408,18 +409,20 @@ uint8 rf_init(void)
 	memset(&rfMux,0,sizeof(rfMux));
 	while(times-- != 0)
 	{	// 发送两空格，初始化串口通信
-		Uart4_Send_Data(" ",1);   //0x20
+		//Uart4_Send_Data(" ",1);   //0x20
+        com_send(rfid_com," ",1);
 		Delay_us(40); //40us
-		Uart4_Send_Data(" ",1);
+		//Uart4_Send_Data(" ",1);
+		com_send(rfid_com," ",1);
 		Delay_ms(200);//20ms
 		if(rfMux.rxBuf[0] == 0x06)
 		{
 		    dbg("rfMux.rxBuf[0]: %d",rfMux.rxBuf[0]);
-			break;
+		    break;
 		}
 		Delay_ms(1000);
 	}
-	times = 2;
+    times = 2;
 	while(times-- != 0)
 	{
 		if(rf_sendCmd(RF_HEAD_C1A,NULL) == OK)
@@ -448,7 +451,8 @@ void rf_over_check(void)
 {
 	rf_reInitRx(0);
     if( rf_init() == OK)
-    {   /* 检测到模块 进入自动检测模式 */
+    {
+        /* 检测到模块 进入自动检测模式 */
         if(rf_sendCmd(RF_HEAD_C2N,C2N_info) == OK)
         //该命令用于卡片的自动检测，执行该命令成功后，在UART 模式下，模块将主动发送
         //读取到卡片的数据
@@ -460,6 +464,7 @@ void rf_over_check(void)
         {    /* 检测RF模块错误 */
             dbg("RF_HEAD_C2N err");
         }
+
     }
     else
     {
@@ -469,10 +474,10 @@ void rf_over_check(void)
 
 void rf_init_check(void)
 {
-    RFID_STATE =STATE_RFID_IDLE;
 	rf_reInitRx(0);
     if( rf_init() == OK)
-    {   /* 检测到模块 进入自动检测模式 */
+    {
+        /* 检测到模块 进入自动检测模式 */
         if(rf_sendCmd(RF_HEAD_C2N,C2N_info) == OK)
         //该命令用于卡片的自动检测，执行该命令成功后，在UART 模式下，模块将主动发送
         //读取到卡片的数据
@@ -573,11 +578,20 @@ void read_rf_dat(uint8 blank)
 
 
 
+/*
+int tiemrcallback(void *p)
+{
+    dbg("tiemrcallback1");
+	return 0;
+}
 
 
-
-
-
+int callback(void *p)
+{
+    dbg("tiemrcallback2");
+	return 0;
+}
+*/
 
 /*****************************************************************************
  函 数 名  : Rfid_Task_Process
@@ -607,10 +621,17 @@ void Rfid_Task_Process()//200ms
                 }
                 break;
             }
+        case STATE_RFID_INIT:
+            {
+                rf_init_check();  //RFID检测初始化。
+                rf_state_set(STATE_RFID_IDLE);
+                break;
+            }
+
         case STATE_RFID_TIME:
             {
                  static uint8 scan_time=0;
-							   overticks=0;
+    			   overticks=0;
                  if((scan_time++)>=2)//400ms
                  {
                      scan_time = 0;
@@ -623,7 +644,7 @@ void Rfid_Task_Process()//200ms
                          if(OK == rf_sendCmd(RF_HEAD_C2N,C2N_info))
                          {
                              rf_reInitRx(1);
-                             RFID_STATE = STATE_RFID_IDLE;
+                             rf_state_set(STATE_RFID_IDLE);
                          }
                      }
                  }
@@ -643,7 +664,7 @@ void Rfid_Task_Process()//200ms
                     if(check_rfid_user(rfMux.devInfo.uid.u)==OK)
                  #endif
                     {
-    					 char str[]={"有效卡"};
+    					char str[]={"有效卡"};
                         BELL(ON);
                         Delay_ms(100);
                         BELL(OFF);
@@ -660,7 +681,8 @@ void Rfid_Task_Process()//200ms
                         Syn6658_Play(str);
                     }
                 }
-                RFID_STATE = STATE_RFID_TIME;
+                //RFID_STATE = STATE_RFID_TIME;
+                rf_state_set(STATE_RFID_TIME);
                 break;
             }
         case STATE_RFID_READCARD:
@@ -668,16 +690,17 @@ void Rfid_Task_Process()//200ms
                 overticks=0;
                 if(OK == rf_sendCmd(RF_HEAD_C2M,C2M_info))
                 {
-                     memcpy(&(UartRx.info),rfMux.devInfo.uid.uch,4);
+                     memcpy(&(ccubuf.info),rfMux.devInfo.uid.uch,4);
                      dbg("uid: %X",rfMux.devInfo.uid.u);
-                     com3_tx_rsp(0,UartRx.frameLen+4);
+                     com3_tx_rsp(ccubuf,0,ccubuf.frameLen+4);
                 }
                 else
                 {
                     dbg("read uid err!");//
-                    com3_tx_rsp(1,UartRx.frameLen);
+                    com3_tx_rsp(ccubuf,1,ccubuf.frameLen);
                 }
-                RFID_STATE = STATE_RFID_TIME;
+                //RFID_STATE = STATE_RFID_TIME;
+                rf_state_set(STATE_RFID_TIME);
                 break;
             }
         case STATE_RFID_WRITEDAT:
@@ -689,18 +712,18 @@ void Rfid_Task_Process()//200ms
                     info.mode = 0x60;
                     memcpy(info.uid,rfMux.devInfo.uid.uch,4);
                     info.keyid = 1;
-                    info.blkid = UartRx.info[0];
+                    info.blkid = ccubuf.info[0];
                     if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
-                        if(OK == rf_sendCmd(RF_HEAD_C2H,(uint8 *)&UartRx.info))
+                        if(OK == rf_sendCmd(RF_HEAD_C2H,(uint8 *)&ccubuf.info))
                         {
                             dbg("write OK!");
-                            com3_tx_rsp(0,UartRx.frameLen-17);
+                            com3_tx_rsp(ccubuf,0,ccubuf.frameLen-17);
                         }
                         else
                         {
                             dbg("write err!");
-                            com3_tx_rsp(1,UartRx.frameLen-17);
+                            com3_tx_rsp(ccubuf,1,ccubuf.frameLen-17);
                         }
                     }
                     else
@@ -710,9 +733,10 @@ void Rfid_Task_Process()//200ms
                 }
                 else
                 {
-                    com3_tx_rsp(1,UartRx.frameLen-17);
+                    com3_tx_rsp(ccubuf,1,ccubuf.frameLen-17);
                 }
-                RFID_STATE = STATE_RFID_TIME;
+                //RFID_STATE = STATE_RFID_TIME;
+                rf_state_set(STATE_RFID_TIME);
                 break;
             }
         case STATE_RFID_READDAT:
@@ -725,7 +749,7 @@ void Rfid_Task_Process()//200ms
                     info.mode = 0x60;                           //0x60——密钥A
                     memcpy(info.uid,rfMux.devInfo.uid.uch,4);   //卡序列号（4 字节）
                     info.keyid = 1;                             //密钥区号（1 字节）： 取值范围0～7
-                    info.blkid = UartRx.info[0];
+                    info.blkid = ccubuf.info[0];
                     /*卡块号（1 字节）：
                         S50（0～63）
                         S70（0～255）
@@ -734,18 +758,18 @@ void Rfid_Task_Process()//200ms
                     */
                     if(OK == rf_sendCmd(RF_HEAD_C2E,(uint8 *)&info)) //密钥验证
                     {
-                        info_w.blkid = UartRx.info[0];
+                        info_w.blkid = ccubuf.info[0];
                         if(OK == rf_sendCmd(RF_HEAD_C2G,(uint8 *)&info_w.blkid))
                         {
-                            memcpy(&(UartRx.info),rfMux.rPkt.info,16);
+                            memcpy(&(ccubuf.info),rfMux.rPkt.info,16);
                             dbg("info:");
                             dbg_hex(rfMux.rPkt.info,16);
-                            com3_tx_rsp(0,UartRx.frameLen+15);
+                            com3_tx_rsp(ccubuf,0,ccubuf.frameLen+15);
                         }
                         else
                         {
                             dbg("read err!");
-                            com3_tx_rsp(1,UartRx.frameLen-1);
+                            com3_tx_rsp(ccubuf,1,ccubuf.frameLen-1);
                         }
 
                     }
@@ -756,182 +780,77 @@ void Rfid_Task_Process()//200ms
                 }
                 else
                 {
-                    com3_tx_rsp(1,UartRx.frameLen-1);
+                    com3_tx_rsp(ccubuf,1,ccubuf.frameLen-1);
                 }
-                RFID_STATE = STATE_RFID_TIME;
+               // RFID_STATE = STATE_RFID_TIME;
+                rf_state_set(STATE_RFID_TIME);
                 break;
             }
         default:
             {
-                RFID_STATE = STATE_RFID_IDLE;
+                //RFID_STATE = STATE_RFID_IDLE;
+                rf_state_set(STATE_RFID_IDLE);
                 break;
             }
     }
 }
 
-void Rx_Task_Process(void)
-{
-    switch(UartRx.cmdType)
-    {
-       case 0x01: //卡片相关操作命令
-       {
-            switch (UartRx.cmdOrSta)
-            {
-               case 0xA1: //读卡号命令，无需验证密钥
-               {
-                    RFID_STATE = STATE_RFID_READCARD;
-					break;
-               }
-               case 0xA2: //原来为注册卡命令，新版软件取消了此命令
-               {
-
-                    break;
-               }
-               case 0xA3: //读指定数据块命令，验证KEYA
-               {
-                    RFID_STATE = STATE_RFID_READDAT;
-                    break;
-               }
-               case 0xA4: //写指定数据块命令，验证KEYA
-               {
-                   RFID_STATE = STATE_RFID_WRITEDAT;
-                    break;
-               }
-               case 0xA5: //设置IC卡密钥命令,验证KEYA
-               {
-                   //RFID_STATE = STATE_RFID_READDAT;
-                    break;
-               }
-               case 0xA6: // //钱包初始化命令，验证KEYA
-               {
-                    RFID_STATE = STATE_WALLET_INIT;
-                    break;
-               }
-               case 0xA7:  //钱包扣款命令，验证KEYA
-               {
-                    RFID_STATE = STATE_WALLET_DEC;
-                    break;
-               }
-               case 0xA8:  //钱包充值命令，验证KEYA
-               {
-                   RFID_STATE = STATE_WALLET_INC;
-                    break;
-               }
-               case 0xA9: //钱包余额查询命令，验证KEYA
-               {
-                    RFID_STATE = STATE_WALLET_BALANCE;
-                    break;
-               }
-               default: //其它
-               {
-
-                    break;
-               }
-            }
-            break;
-       }
-       case 0x02: //读写器参数查询
-       {
-
-            break;
-       }
-       case 0x03: //读写器参数设置
-       {
-
-            break;
-       }
-       default: //其它
-       {
-
-            break;
-       }
-
-    }
-
-}
 
 /*****************************************************************************
- 函 数 名  : com3_tx_rsp
- 功能描述  : com3应答函数
- 输入参数  : uint8 sta  0-ok，1-err
-             uint8 len
+ 函 数 名  : com4_rxDeal
+ 功能描述  : rfid接收数据帧
+ 输入参数  : void
  输出参数  : 无
  返 回 值  :
  调用函数  :
  被调函数  :
 
  修改历史      :
-  1.日    期   : 2018年7月8日
+  1.日    期   : 2018年11月7日
     作    者   : zgj
     修改内容   : 新生成函数
 
 *****************************************************************************/
-void com3_tx_rsp(uint8 sta,uint8 len)
+void rfid_rxDeal(uint8 dat)
 {
-    UartRx.cmdOrSta = sta; //成功
-    UartRx.frameLen = len;
-    UartRx.rxBuf[UartRx.frameLen-2] = rf_bccCalc(UartRx.rxBuf, UartRx.frameLen-2);
-    UartRx.rxBuf[UartRx.frameLen-1] = 0x03;
-    com_send(COM3,UartRx.rxBuf,UartRx.frameLen); //中断发送
-}
-
-void com3_rxDeal(void)
-{
-	char ch;
-	static uint8 index = 0;
-	if(com_rxLeft(COM3) != 0)
-	{
-		while(1)
-		{
-			if(OK == com_getch(COM3,&ch))
-			{
-                rxbuf[index++]= ch;
-                if((rxbuf[index-1] == 0x03)&&(index == rxbuf[0]))
-                {
-                    index -=2;// 指向bcc
-                    if(rf_bccCalc(rxbuf, index) == rxbuf[index]) //bcc ok?
-                    {
-                        memcpy(&(UartRx.rxBuf),rxbuf,index);
-                        index = 0;
-                        Rx_Task_Process();
-                    }
-                    else
-                    {
-                        memset(&rxbuf,0,32);
-                        index = 0;
-                    }
-                }
-
-			}
-			else
-			{
-				break;
-			}
-		}
-	}
-}
-
-
-void Rfid_Receive_Process(void)
-{
-    if(USART_GetFlagStatus(UART4,USART_IT_RXNE)!= RESET)
+    rfMux.rxBuf[rfMux.rIdx++] = dat;
+    if ((rfMux.rxBuf[rfMux.rIdx-1] == 0x03) && (rfMux.rIdx == rfMux.rPkt.frameLen))
     {
-        USART_ClearFlag(UART4, USART_FLAG_RXNE | USART_FLAG_ORE);
-        rfMux.rxBuf[rfMux.rIdx++] = USART_ReceiveData(UART4);
-        if ((rfMux.rxBuf[rfMux.rIdx-1] == 0x03) && (rfMux.rIdx == rfMux.rPkt.frameLen))
+        rfMux.rIdx -= 2;    // 指向bcc
+        if(rf_bccCalc(rfMux.rxBuf,rfMux.rIdx) == rfMux.rxBuf[rfMux.rIdx])
         {
-            rfMux.rIdx -= 2;    // 指向bcc
-            if(rf_bccCalc(rfMux.rxBuf,rfMux.rIdx) == rfMux.rxBuf[rfMux.rIdx])
+             rfMux.frameOK =1; //接收完一帧数据
+            if(rfMux.mode == 1)
             {
-                 rfMux.frameOK =1; //接收完一帧数据
-                if(rfMux.mode == 1)
-                {
-                    RFID_STATE =STATE_RFID_CHKCARD;
-                    //主动上报，检测到刷卡
-                }
+                //RFID_STATE =STATE_RFID_CHKCARD;
+                 rf_state_set(STATE_RFID_CHKCARD);
+                //主动上报，检测到刷卡
             }
         }
     }
+
+}
+
+
+
+/*****************************************************************************
+ 函 数 名  : rf_state_set
+ 功能描述  : rf状态设置
+ 输入参数  : uint8 st
+ 输出参数  : 无
+ 返 回 值  :
+ 调用函数  :
+ 被调函数  :
+
+ 修改历史      :
+  1.日    期   : 2018年11月7日
+    作    者   : zgj
+    修改内容   : 新生成函数
+
+*****************************************************************************/
+void rf_state_set(uint8 st)
+{
+    RFID_STATE = st;
 }
 
 

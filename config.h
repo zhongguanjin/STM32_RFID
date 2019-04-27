@@ -8,26 +8,25 @@
 #include "SysTick.h"
 #include "TiMbase.h"
 
-typedef char	int8;
-typedef int		int16;
-typedef long	int32;
+typedef char	            int8;
+typedef short		        int16;
+typedef int	                int32;
 typedef unsigned char		uint8;
-typedef unsigned int		uint16;
-typedef unsigned long		uint32;
-typedef unsigned long		ulong;
-typedef unsigned long long	ullong;
+typedef unsigned short		uint16;
+typedef unsigned int		uint32;
+
 
 #pragma anon_unions
 
 #define OK		(1)
 #define ERR		(0)
+#define GoOn    (2)
 
 #define ON 1
 #define OFF 0
 
 
 typedef union {
-	void *	ptr;
 	uint32		u;		// u=0x01020304
 	int32		i;
 	uint16		ush[2];

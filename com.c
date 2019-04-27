@@ -4,6 +4,8 @@
 #include "SysTick.h"
 #include "Syn6658.h"
 
+#include "ml_fpm.h"
+
 tComBuf_t comBuf[4];
 USART_TypeDef * Tab_uartbase[5] = {USART1,USART2,USART3,UART4,UART5};
 
@@ -341,11 +343,12 @@ void USART3_IRQHandler(void)
 
 void UART4_IRQHandler(void)
 {
-/*
 	if((UART4->SR & USART_SR_RXNE) != 0)
 	{
+	     //rfid_rxDeal((u8)(UART4->DR));
+	     mlcom_Deal((u8)(UART4->DR));
 		// Receive data & clear flag
-		comBuf[COM4].rx.buf[comBuf[COM4].rx.in++] = (u8)(UART4->DR);
+		//comBuf[COM4].rx.buf[comBuf[COM4].rx.in++] = (u8)(UART4->DR);
 	}
 	if((UART4->SR & USART_SR_TXE) != 0)
 	{
@@ -358,9 +361,6 @@ void UART4_IRQHandler(void)
 			USART_ITConfig(UART4, USART_IT_TXE, DISABLE);
 		}
 	}
-*/
-    Rfid_Receive_Process();
-
 }
 
 

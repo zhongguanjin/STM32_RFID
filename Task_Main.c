@@ -8,7 +8,7 @@
 
 #include "dbg.h"
 #include "Rfid.h"
-
+#include "ml_fpm.h"
 
 
 void Taskpro(void);
@@ -17,7 +17,7 @@ void Taskpro(void);
 // 定义结构体变量
 static TASK_COMPONENTS TaskComps[] =
 {
-    {0, 20, 20, Taskpro},//200ms
+    {0, 50, 50, Taskpro},//500ms
 };
 // 任务清单
 typedef enum _TASK_LIST
@@ -49,7 +49,8 @@ typedef enum _TASK_LIST
 *****************************************************************************/
 void Taskpro(void)
 {
-    Rfid_Task_Process();
+    //Rfid_Task_Process();
+    mlst_task();
 }
 
 /*****************************************************************************

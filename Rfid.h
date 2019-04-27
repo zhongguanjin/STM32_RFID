@@ -4,9 +4,11 @@
 
 #include "config.h"
 
+#include "com.h"
 
+#define rfid_com  COM4
 
-
+//#define rfid_rxDeal()  com4_rxDeal()
 
 #define RFID_BUF_MAX	32
 
@@ -72,17 +74,7 @@ typedef struct
 	rfInfo_t	devInfo;	// 卡信息
 } rfMux_t;
 
-typedef  union
-{
-      struct
-      {
-        uint8  frameLen;
-        uint8  cmdType;
-        uint8  cmdOrSta;
-        uint8  info[RFID_BUF_MAX-3];   //28 byte
-      };
-      uint8 rxBuf[RFID_BUF_MAX];
-} Uartrx_t;
+
 
 #define RF_HEAD_C1A		0x00410106		// 读取设备信息
 #define RF_HEAD_C1B		0x00420106		// 配置IC卡接口
@@ -124,6 +116,7 @@ typedef  union
 enum
 {
     STATE_RFID_IDLE =0,
+    STATE_RFID_INIT,
     STATE_RFID_TIME,  //定时查询卡
     STATE_RFID_CHKCARD ,  //检测到刷卡
     STATE_RFID_READCARD,
@@ -142,7 +135,7 @@ extern void rf_init_check(void);
 
 extern void Rfid_Task_Process(void);
 
-extern void Rfid_Receive_Process(void);
+extern void com4_rxDeal(void);
 
 extern uint32 get_rf_uid(void);
 extern void read_rf_dat(uint8 blank);
@@ -163,5 +156,7 @@ extern uint8 query_rfid_user(uint32* buf);
 extern void rfid_user_init(void);
 
 #endif
+extern void rf_state_set(uint8 st);
 
+extern uint8 rf_bccCalc(uint8 * buf,uint8 len);
 #endif
