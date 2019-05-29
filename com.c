@@ -345,8 +345,8 @@ void UART4_IRQHandler(void)
 {
 	if((UART4->SR & USART_SR_RXNE) != 0)
 	{
-	     //rfid_rxDeal((u8)(UART4->DR));
-	     mlcom_Deal((u8)(UART4->DR));
+	     rfid_rxDeal((u8)(UART4->DR));
+	    // mlcom_Deal((u8)(UART4->DR));
 		// Receive data & clear flag
 		//comBuf[COM4].rx.buf[comBuf[COM4].rx.in++] = (u8)(UART4->DR);
 	}

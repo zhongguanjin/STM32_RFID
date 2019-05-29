@@ -98,8 +98,8 @@ int main(void)
     SysTick_Init();
 	com_init(ccu_com, 9600);     //上位机com
 	com_init(console_com, 115200);//控制台com
-	//com_init(rfid_com, 9600);
-	com_init(ml_com, 115200);
+	com_init(rfid_com, 9600);
+	//com_init(ml_com, 115200);
 	com_init(syn6658_com, 9600);
     NVIC_Configuration(); //初始化相关中断
     /* TIM2 定时配置 */
@@ -107,7 +107,8 @@ int main(void)
     GPIO_Config();
     I2C_EE_Config();
     syn6658_check();
-    MlFpm_Init();
+    rf_init_check();
+    //MlFpm_Init();
     rf_state_set(STATE_RFID_INIT);
 	while(1)
 	{
