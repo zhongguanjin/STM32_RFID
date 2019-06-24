@@ -53,5 +53,19 @@ typedef union {
 					else		\
 					GPIO_ResetBits(GPIOC,GPIO_Pin_7)
 
+
+#define val_and(REG,VAL)		((REG) &= (VAL))	// 单纯与操作
+#define val_or(REG, VAL)		((REG) |= (VAL))	// 单纯或操作
+#define val_xor(REG, VAL)		((REG) ^= (VAL))	// 单纯异或操作
+
+#define val_setb(REG,VAL)		((REG) |= (VAL))	// 设置VAL中相应=1的位
+#define val_clrb(REG,VAL)		((REG) &= ~(VAL))	// 清除VAL中相应=1的位
+
+                        // DT:u8 u16 u32
+#define bit_set(DT, REG, BN)	((REG) |= (((DT)1)<<(BN)))
+#define bit_clr(DT, REG, BN)	((REG) &= ~(((DT)1)<<(BN)))
+#define bit_xor(DT, REG, BN)	((REG) ^= (((DT)1)<<(BN)))
+#define testbit(DT, REG, BN)	((REG) & (((DT)1)<<(BN)))
+
 #endif
 

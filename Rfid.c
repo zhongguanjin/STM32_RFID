@@ -409,10 +409,8 @@ uint8 rf_init(void)
 	memset(&rfMux,0,sizeof(rfMux));
 	while(times-- != 0)
 	{	// 发送两空格，初始化串口通信
-		//Uart4_Send_Data(" ",1);   //0x20
         com_send(rfid_com," ",1);
 		Delay_us(40); //40us
-		//Uart4_Send_Data(" ",1);
 		com_send(rfid_com," ",1);
 		Delay_ms(200);//20ms
 		if(rfMux.rxBuf[0] == 0x06)
@@ -608,7 +606,7 @@ int callback(void *p)
     修改内容   : 新生成函数
 
 *****************************************************************************/
-void Rfid_Task_Process()//200ms
+void Rfid_Task_Process()//300ms
 {
     switch(RFID_STATE)
     {
@@ -665,14 +663,14 @@ void Rfid_Task_Process()//200ms
                  #endif
                     {
     					char str[]={"有效卡"};
-                        BELL(ON);
-                        Delay_ms(100);
-                        BELL(OFF);
-                        Delay_ms(100);
-                        BELL(ON);
-                        Delay_ms(100);
-                        BELL(OFF);
                         Syn6658_Play(str);
+                        BELL(ON);
+                        Delay_ms(80);
+                        BELL(OFF);
+                        Delay_ms(80);
+                        BELL(ON);
+                        Delay_ms(80);
+                        BELL(OFF);
 
                     }
                     else

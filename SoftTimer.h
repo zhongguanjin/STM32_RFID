@@ -36,7 +36,7 @@ extern "C" {
 
 
 typedef int (*TMRCALLBACK)(void *pArg);  //定时回调函数指针
-typedef unsigned long (*TMRSOURCE)(void);       //系统时钟函数指针
+typedef unsigned int (*TMRSOURCE)(void);       //系统时钟函数指针
 
 /****************************************************
 * 结构名：TIMER
@@ -56,13 +56,14 @@ typedef unsigned long (*TMRSOURCE)(void);       //系统时钟函数指针
 ****************************************************/
 typedef struct _TIMER
 {
+    void       *pArg;            /* 回调函数的参数 */
     uint8      periodic;         /* 单次触发/周期触发 */
     uint32      start;           /* 计时器起始时间 */
     uint32      now;             /* 计时器当前时间 */
     uint32      elapse;          /* 计时器已过时间 */
     uint32      timeout;         /* 计时器计时时间 */
     TMRCALLBACK pfTimerCallback; /* 计时结束后执行的回调函数 */
-    void       *pArg;            /* 回调函数的参数 */
+
 } TIMER;
 
 

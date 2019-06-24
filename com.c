@@ -15,10 +15,18 @@ void com_cycleReset(comCycle_t * pBuf)
 	pBuf->out = 0;
 }
 
+
+
+
+
+
+
+
 void com_init(COM_DEF COMx,u32 baud)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
 	com_cycleReset(&(comBuf[COMx].tx));
 	com_cycleReset(&(comBuf[COMx].rx));
 	// 配置串口
@@ -45,6 +53,14 @@ void com_init(COM_DEF COMx,u32 baud)
                 USART_Init(USART1, &USART_InitStructure); // 配置串口
                 USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
                 USART_Cmd(USART1, ENABLE);
+
+                //使能串口1中断，并设置优先级
+                NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+                NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+                NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+                NVIC_Init(&NVIC_InitStructure);  //将结构体丢到配置函数，即写入到对应寄存器中
+
                 break;
             }
         case COM2:
@@ -72,6 +88,12 @@ void com_init(COM_DEF COMx,u32 baud)
                 USART_Init(USART2, &USART_InitStructure); // 配置串口
                 USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);
                 USART_Cmd(USART2, ENABLE);
+                  //使能串口3中断，并设置优先级
+                NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
+                NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+                NVIC_Init(&NVIC_InitStructure);  //将结构体丢到配置函数，即写入到对应寄存器中
                 break;
             }
         case COM3:
@@ -96,6 +118,13 @@ void com_init(COM_DEF COMx,u32 baud)
                 USART_Init(USART3, &USART_InitStructure); // 配置串口
                 USART_ITConfig(USART3, USART_IT_RXNE, ENABLE);
                 USART_Cmd(USART3, ENABLE);
+                  //使能串口3中断，并设置优先级
+                NVIC_InitStructure.NVIC_IRQChannel = USART3_IRQn;
+                NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+                NVIC_Init(&NVIC_InitStructure);  //将结构体丢到配置函数，即写入到对应寄存器中
+
                 break;
             }
         case COM4:
@@ -120,6 +149,12 @@ void com_init(COM_DEF COMx,u32 baud)
                 USART_Init(UART4, &USART_InitStructure); // 配置串口
                 USART_ITConfig(UART4, USART_IT_RXNE, ENABLE);
                 USART_Cmd(UART4, ENABLE);
+                  //使能串口4中断，并设置优先级
+                NVIC_InitStructure.NVIC_IRQChannel = UART4_IRQn;
+                NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+                NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+                NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+                NVIC_Init(&NVIC_InitStructure);  //将结构体丢到配置函数，即写入到对应寄存器中
                 break;
             }
     }

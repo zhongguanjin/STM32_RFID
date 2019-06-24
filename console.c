@@ -7,6 +7,7 @@
 #include "bsp_i2c.h"
 
 #include "ml_fpm.h"
+#include "SoftTimer.h"
 
 
 
@@ -19,6 +20,10 @@ void eeprom_Menu(void);
 int cs_rftest(char * buf, int len);
 void rf_cmdMenu(void);
 uint8 val_getPara(uint8 *cp,char *string);
+
+int cs_softtimetest(char * buf, int len);
+void soft_timeMenu(void);
+    int pfTimerCallback(void *arg);
 
 
 consoleCallback console_cb = NULL;
@@ -55,6 +60,7 @@ void console_mainMenu(void)
 {
 	printf("\r\n\t cs menu:\r\n");
 	printf("0:init rfid user\r\n");
+	printf("1,softtime test\r\n");
 	printf("a:read rf uid\r\n");
 	printf("b:rf cmd\r\n");
     printf("c:add rfid user\r\n");
@@ -63,6 +69,7 @@ void console_mainMenu(void)
     printf("f:eeprom test\r\n");
     printf("g:ml sign\r\n");
     printf("h:ml clear\r\n");
+
 
 }
 /*****************************************************************************
@@ -106,6 +113,11 @@ int console_main(char * buf, int len)
             }
         #endif
 			break;
+		}
+		case '1':
+		{
+		    soft_timeMenu();
+		    break;
 		}
 		case 'a':
 		{
@@ -322,7 +334,6 @@ void rf_cmdMenu(void)
 	printf("read dat:1,mid \r\n");
 	//dbg("write dat:2,mid\r\n");
 }
-
 /*****************************************************************************
  函 数 名  : cs_rftest
  功能描述  : rf测试驱动
@@ -381,6 +392,112 @@ int cs_rftest(char * buf, int len)
     return 0;
 }
 
+
+/*****************************************************************************
+ 函 数 名  : soft_timeMenu
+ 功能描述  : soft_time菜单函数
+ 输入参数  : void
+ 输出参数  : 无
+ 返 回 值  :
+ 调用函数  :
+ 被调函数  :
+
+ 修改历史      :
+  1.日    期   : 2018年7月26日
+    作    者   : zgj
+    修改内容   : 新生成函数
+
+*****************************************************************************/
+void soft_timeMenu(void)
+{
+    console_cb = cs_softtimetest;
+	printf("\r\n\t softtime menu:\r\n");
+	printf("creat timer:1,arg\r\n");
+	printf("kill timer: 2,arg\r\n");
+	printf("reset timer:3,arg\r\n");
+	//dbg("write dat:2,mid\r\n");
+}
+/*****************************************************************************
+ 函 数 名  : cs_softtimetest
+ 功能描述  : softtime测试驱动
+ 输入参数  : char * buf
+             int len
+ 输出参数  : 无
+ 返 回 值  :
+ 调用函数  :
+ 被调函数  :
+
+ 修改历史      :
+  1.日    期   : 2018年2月9日
+    作    者   : zgj
+    修改内容   : 新生成函数
+
+*****************************************************************************/
+    TIMER_TABLE *main_task;
+
+int cs_softtimetest(char * buf, int len)
+{
+	union {
+		uint8 u[2];
+		struct {
+			uint8		FUNC;
+			uint8		MID;
+		};
+	} para;
+    uint8 i=0;
+    i=val_getPara(para.u,buf);
+    dbg("%d,%d",para.FUNC,para.MID);
+    if(i>3)
+    {
+        dbg("para err");
+        return 1;
+    }
+    switch(para.FUNC)
+    {
+        case 1:
+        {
+            main_task= CreatTimer(1000, 1, pfTimerCallback, NULL);
+            break;
+        }
+        case 2:
+        {
+            if(KillTimer(main_task)==SW_OK)
+            {
+                dbg("kill ok");
+            }
+            else
+            {
+                dbg("kill err");
+            }
+            break;
+        }
+        case 3:
+        {
+            if(ResetTimer(main_task)== SW_OK)
+            {
+                dbg("reset ok");
+            }
+            else
+            {
+                dbg("reset err");
+            }
+            break;
+        }
+		default:
+		{
+            return 1;
+		}
+    }
+    memset(para.u,0,sizeof(para));
+    soft_timeMenu();
+    return 0;
+}
+
+int pfTimerCallback(void *arg)
+{
+    dbg("pfTimerCallback");
+    return 0;
+}
 
 void uart_bufInit(uart_buf_t * pBuf)
 {

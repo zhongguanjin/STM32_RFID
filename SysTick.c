@@ -33,7 +33,7 @@ void SysTick_Init(void)
 	 */
 	//if (SysTick_Config(72000000 / 1000000))	// ST3.5.0库版本
 //	if (SysTick_Config(SystemFrequency / 100000))	// ST3.0.0???
-	if (SysTick_Config(SystemCoreClock / 1000000))	// ST3.5.0???
+	if (SysTick_Config(SystemCoreClock/ 1000000))	// ST3.5.0???
 	{
 		/* Capture error */
 		while (1);
@@ -50,12 +50,15 @@ void SysTick_Init(void)
   */
 void Delay_us(__IO u32 nTime)
 {
+
+
 	TimingDelay = nTime;
 
 	// 使能滴答定时器
 	SysTick->CTRL |=  SysTick_CTRL_ENABLE_Msk;
 
 	while(TimingDelay != 0);
+
 }
 
 

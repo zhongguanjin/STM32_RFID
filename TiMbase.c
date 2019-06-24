@@ -18,27 +18,29 @@
 #include "TiMbase.h"
 #include "Task_Main.h"
 
+#include "dbg.h"
 
 /*
  * TIM_Period / Auto Reload Register(ARR) = 1000   TIM_Prescaler--71
- * 中断周期为 = 1/(72MHZ /72) * 1000 = 1ms
+ * 中断周期为 = 1/(36MHZ /36) * 1000 = 1ms
  *
  * TIMxCLK/CK_PSC --> TIMxCNT --> TIM_Period(ARR) --> 中断 且TIMxCNT重置为0重新计数
  */
 void TIM2_Configuration(void)
 {
     TIM_TimeBaseInitTypeDef  TIM_TimeBaseStructure;
+    NVIC_InitTypeDef NVIC_InitStructure;
 
-		/* 设置TIM2CLK 为 72MHZ */
+		/* 设置TIM2CLK 为 18MHZ */
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , ENABLE);
     //TIM_DeInit(TIM2);
 
 	/* 自动重装载寄存器周期的值(计数值) */
-    TIM_TimeBaseStructure.TIM_Period=1000;
+    TIM_TimeBaseStructure.TIM_Period=999;
 
     /* 累计 TIM_Period个频率后产生一个更新或者中断 */
 	  /* 时钟预分频数为72 */
-    TIM_TimeBaseStructure.TIM_Prescaler= 71;
+    TIM_TimeBaseStructure.TIM_Prescaler= 35;
 
 		/* 对外部时钟进行采样的时钟分频,这里没有用到 */
     TIM_TimeBaseStructure.TIM_ClockDivision=TIM_CKD_DIV1;
@@ -53,36 +55,31 @@ void TIM2_Configuration(void)
     TIM_Cmd(TIM2, ENABLE);
        /* TIM2 重新开时钟，开始计时 */
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 , ENABLE);
+
+    NVIC_InitStructure.NVIC_IRQChannel = TIM2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 1;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+
+
 }
 
 
-unsigned long led_time;
-
 u32 tick_time1;
-u32 SystemTicksCount(void)
- {
-    led_time++;
-	if(led_time%150 == 60)
-	{
-		LED(ON);
-	}
-	if(led_time%150== 120)
-	{
-		LED(OFF);
-	}
-	if(led_time%150 == 0)
-	{
-		led_time =0;
-	}
-    return tick_time1++;
- }
 
+
+
+u32 SystemTicksCount(void)
+{
+    return tick_time1;
+}
 
 void TIM2_IRQHandler(void)
 {
 	if (TIM_GetITStatus(TIM2 , TIM_IT_Update) != RESET )
 	{
-	    SystemTicksCount();
+	    tick_time1++;
 	    TaskRemarks();
 		TIM_ClearITPendingBit(TIM2 , TIM_FLAG_Update);
 	}

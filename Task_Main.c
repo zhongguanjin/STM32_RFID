@@ -17,7 +17,7 @@ void Taskpro(void);
 // 定义结构体变量
 static TASK_COMPONENTS TaskComps[] =
 {
-    {0, 50, 50, Taskpro},//500ms
+    {0, 300, 300, Taskpro},   //300ms
 };
 // 任务清单
 typedef enum _TASK_LIST

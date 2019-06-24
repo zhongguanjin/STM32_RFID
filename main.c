@@ -9,8 +9,14 @@
 #include "ccu.h"
 #include "SoftTimer.h"
 #include "ml_fpm.h"
+
+
+
+
+
 void GPIO_Config(void);
 void NVIC_Configuration(void);
+void HSI_SetSysClock(uint32_t pllmul);
 
 void GPIO_Config(void)
 {
@@ -42,81 +48,53 @@ void GPIO_Config(void)
         BELL(OFF);
 }
 
-//配置矢量中断，矢量的意思就是有顺序，有先后的意思。
-void NVIC_Configuration(void)
-{
-  NVIC_InitTypeDef NVIC_InitStructure1;	//定义数据结构体
-  NVIC_InitTypeDef NVIC_InitStructure2;	//定义数据结构体
-  NVIC_InitTypeDef NVIC_InitStructure3;
-  NVIC_InitTypeDef NVIC_InitStructure4;
-  NVIC_InitTypeDef NVIC_InitStructure5;
-  NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);//将中断矢量放到Flash的0地址
-  NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);//设置优先级配置的模式，详情请阅读原材料中的文章
-
-  //使能串口1中断，并设置优先级
-  NVIC_InitStructure1.NVIC_IRQChannel = USART1_IRQn;
-  NVIC_InitStructure1.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure1.NVIC_IRQChannelSubPriority = 2;
-  NVIC_InitStructure1.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure1);	//将结构体丢到配置函数，即写入到对应寄存器中
-
-    //使能串口4中断，并设置优先级
-  NVIC_InitStructure2.NVIC_IRQChannel = UART4_IRQn;
-  NVIC_InitStructure2.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure2.NVIC_IRQChannelSubPriority = 1;
-  NVIC_InitStructure2.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure2);	//将结构体丢到配置函数，即写入到对应寄存器中
-
-  NVIC_InitStructure3.NVIC_IRQChannel = TIM2_IRQn;
-  NVIC_InitStructure3.NVIC_IRQChannelPreemptionPriority = 1;
-  NVIC_InitStructure3.NVIC_IRQChannelSubPriority = 1;
-  NVIC_InitStructure3.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure3);
-
-    //使能串口3中断，并设置优先级
-  NVIC_InitStructure4.NVIC_IRQChannel = USART3_IRQn;
-  NVIC_InitStructure4.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure4.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure4.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure4);	//将结构体丢到配置函数，即写入到对应寄存器中
-    //使能串口3中断，并设置优先级
-  NVIC_InitStructure5.NVIC_IRQChannel = USART2_IRQn;
-  NVIC_InitStructure5.NVIC_IRQChannelPreemptionPriority = 0;
-  NVIC_InitStructure5.NVIC_IRQChannelSubPriority = 0;
-  NVIC_InitStructure5.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure5);	//将结构体丢到配置函数，即写入到对应寄存器中
 
 
-}
+
+
 
 
 
 int main(void)
 {
+  	RCC_ClocksTypeDef RCC_Clocks;
     SystemInit();					//初始化系统
     /* 配置SysTick 为1us中断一次 */
     SysTick_Init();
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);//将中断矢量放到Flash的0地址
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);//设置优先级配置的模式，详情请阅读原材料中的文章
+    com_init(console_com, 115200);//控制台com
+    RCC_GetClocksFreq(&RCC_Clocks);
+    dbg("SYSCLK:%d,HCLK:%d,PCLK1:%d,PCLK2:%d",
+            RCC_Clocks.SYSCLK_Frequency,
+            RCC_Clocks.HCLK_Frequency,
+            RCC_Clocks.PCLK1_Frequency,
+            RCC_Clocks.PCLK2_Frequency
+        );
 	com_init(ccu_com, 9600);     //上位机com
 	com_init(console_com, 115200);//控制台com
 	com_init(rfid_com, 9600);
 	//com_init(ml_com, 115200);
 	com_init(syn6658_com, 9600);
-    NVIC_Configuration(); //初始化相关中断
     /* TIM2 定时配置 */
     TIM2_Configuration();
     GPIO_Config();
     I2C_EE_Config();
     syn6658_check();
-    rf_init_check();
-    //MlFpm_Init();
     rf_state_set(STATE_RFID_INIT);
+    TimersInit(SystemTicksCount);
+
 	while(1)
 	{
 	    ccu_rxDeal();
 	    syn6658_rxDeal();
         console_rxDeal();
+        ProcessTimer();
         TaskProcess();
     }
 }
-/******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
 
+
+
+
+/******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
